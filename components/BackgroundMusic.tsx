@@ -4,17 +4,21 @@ import { Volume2, VolumeX, Disc, Loader2, Music, Volume1 } from 'lucide-react';
 
 const BackgroundMusic: React.FC = () => {
   /**
-   * HƯỚNG DẪN: Thay link MP3 của bạn vào SOUND_URL bên dưới.
-   * Đảm bảo link là link trực tiếp (kết thúc bằng .mp3)
+   * =========================================================================
+   * HƯỚNG DẪN CHÈN NHẠC CỦA BẠN:
+   * 1. Thay thế đường link bên dưới bằng đường dẫn tới file .mp3 của bạn.
+   * 2. Nếu file nhạc ở trong thư mục dự án, hãy để nó vào thư mục 'public' 
+   *    và thay đổi đường dẫn thành "/ten-file-cua-ban.mp3"
+   * =========================================================================
    */
-  const SOUND_URL = "../public/music/tet-music.mp3"; 
+  const SOUND_URL = "music/tet-music.mp3"; 
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Đồng bộ âm lượng khi state volume thay đổi
+  // Cập nhật âm lượng trực tiếp vào thẻ audio qua JS
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
@@ -22,48 +26,48 @@ const BackgroundMusic: React.FC = () => {
   }, [volume]);
 
   const togglePlay = () => {
-    if (!audioRef.current || !isLoaded) return;
+    const audio = audioRef.current;
+    if (!audio || !isLoaded) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      // Xử lý chặn Autoplay của trình duyệt
-      audioRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-        })
+    if (audio.paused) {
+      audio.play()
+        .then(() => setIsPlaying(true))
         .catch(err => {
-          console.error("Autoplay bị chặn:", err);
-          alert("Chào Xuân 2026! Trình duyệt yêu cầu bạn nhấn trực tiếp vào đĩa nhạc để bắt đầu phát âm thanh.");
+          console.warn("Trình duyệt chặn tự động phát:", err);
+          alert("Chào Xuân Bính Ngọ! Vui lòng nhấn vào đĩa nhạc để bắt đầu phát nhạc Tết.");
         });
+    } else {
+      audio.pause();
+      setIsPlaying(false);
     }
   };
 
   return (
     <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-center gap-2 group">
-      {/* THẺ AUDIO TIÊU CHUẨN - Ổn định và tiết kiệm tài nguyên */}
+      {/* THẺ AUDIO HTML5 - Đơn giản và ổn định nhất */}
       <audio 
         ref={audioRef}
         src={SOUND_URL}
         loop
+        preload="auto"
         onCanPlayThrough={() => setIsLoaded(true)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         className="hidden"
       />
 
-      {/* HIỆN THỊ TRẠNG THÁI KHI ĐANG PHÁT */}
+      {/* Hiển thị trạng thái nhạc đang chạy */}
       <div className={`transition-all duration-500 ${isPlaying ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         <div className="bg-red-600 text-yellow-300 text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-yellow-400/30 uppercase tracking-widest animate-pulse">
-          Music On
+          Tết 2026 Radio
         </div>
       </div>
 
       <div className="relative flex items-center">
-        {/* THANH ÂM LƯỢNG - Chỉ hiện khi hover để tối giản */}
+        {/* Thanh điều khiển âm lượng bằng JS */}
         <div className="absolute right-full mr-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center bg-red-950/90 backdrop-blur-md p-3 rounded-2xl border border-yellow-500/20 shadow-2xl gap-3">
-          <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="text-yellow-500 hover:scale-110 transition-transform">
+          <button 
+            onClick={() => setVolume(v => v === 0 ? 0.5 : 0)} 
+            className="text-yellow-500 hover:scale-110 transition-transform"
+          >
             {volume === 0 ? <VolumeX size={18} /> : volume < 0.5 ? <Volume1 size={18} /> : <Volume2 size={18} />}
           </button>
           <input 
@@ -75,26 +79,24 @@ const BackgroundMusic: React.FC = () => {
           />
         </div>
 
-        {/* NÚT ĐĨA NHẠC CHÍNH */}
+        {/* Nút đĩa nhạc quay - Giao diện HTML/CSS thuần */}
         <button
           onClick={togglePlay}
           disabled={!isLoaded}
           className={`relative p-0 rounded-full transition-all duration-700 shadow-2xl overflow-hidden border-4 ${
             isPlaying 
-            ? 'border-yellow-400 scale-110 rotate-[360deg] shadow-yellow-500/40' 
+            ? 'border-yellow-400 scale-110 shadow-yellow-500/40' 
             : 'border-red-900/50 grayscale opacity-80 hover:opacity-100 hover:grayscale-0'
           } ${!isLoaded ? 'cursor-wait' : 'cursor-pointer hover:shadow-yellow-500/20'}`}
           style={{ width: '64px', height: '64px' }}
         >
-          {/* Lớp nền đĩa than */}
+          {/* Đĩa than xoay dùng CSS Animation */}
           <div className={`absolute inset-0 bg-black flex items-center justify-center ${isPlaying ? 'animate-spin-slow' : ''}`}>
              <div className="w-full h-full bg-[radial-gradient(circle,_#333_0%,_#000_100%)] flex items-center justify-center relative">
-                {/* Rãnh đĩa */}
                 <div className="absolute inset-1 rounded-full border border-white/5" />
                 <div className="absolute inset-3 rounded-full border border-white/5" />
                 <div className="absolute inset-5 rounded-full border border-white/5" />
                 
-                {/* Tâm đĩa */}
                 <div className="w-8 h-8 bg-red-700 rounded-full border-2 border-yellow-500 flex items-center justify-center relative z-10 shadow-inner">
                     {!isLoaded ? (
                       <Loader2 size={18} className="text-yellow-400 animate-spin" />
@@ -106,15 +108,15 @@ const BackgroundMusic: React.FC = () => {
              </div>
           </div>
 
-          {/* Overlay khi hover */}
+          {/* Biểu tượng Music khi Hover */}
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
             {isPlaying ? <VolumeX className="text-white" size={24} /> : <Music className="text-yellow-400" size={24} />}
           </div>
         </button>
       </div>
 
-      {/* HIỆU ỨNG SÓNG NHẠC DƯỚI ĐĨA */}
-      <div className="flex gap-1 h-4 items-end px-2 py-0.5 bg-red-950/30 rounded-full border border-white/5 shadow-inner">
+      {/* Hiệu ứng cột sóng âm thanh */}
+      <div className="flex gap-1 h-4 items-end px-2 py-0.5 bg-red-950/30 rounded-full border border-white/5">
         {[1, 2, 3, 4, 5].map(i => (
           <div 
             key={i} 
