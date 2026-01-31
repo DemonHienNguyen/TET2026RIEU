@@ -2,11 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FortuneResult } from "../types";
 
-// Hàm helper để tạo instance AI mới, đảm bảo luôn lấy API_KEY mới nhất từ define của Vite
+// Hàm khởi tạo AI - Ưu tiên key từ hệ thống, nếu không có sẽ ném lỗi rõ ràng
 const getAIInstance = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === '' || apiKey === 'undefined') {
-    throw new Error("API Key chưa được cấu hình. Vui lòng thêm biến môi trường API_KEY.");
+    throw new Error("Thiếu API_KEY. Hãy kiểm tra Environment Variables trên Vercel.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -39,26 +39,40 @@ export const getFortune = async (userBirthYear: string, userQuestion: string): P
 };
 
 export const generateTetGreetingCard = async (description: string): Promise<string | null> => {
-  const ai = getAIInstance();
-  const prompt = `A beautiful high-quality digital illustration for Vietnamese Lunar New Year 2026 (Year of the Horse). Artistic, festive style with red and gold colors. Scene: ${description}. Include blossoming Peach/Apricot flowers and Tet decorations.`;
+  // Đối với model pro image, ta khởi tạo instance mới ngay lúc gọi để đảm bảo lấy key mới nhất
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `A breathtaking, high-quality cinematic digital art for 2026 Vietnamese Lunar New Year (Year of the Horse). Artistic style: modern mixed with traditional lacquer painting. Scene: ${description}. Vibrant red and gold theme, blooming apricot blossoms, festive atmosphere, ultra-detailed.`;
   
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [{ text: prompt }]
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: "1:1"
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: {
+        parts: [{ text: prompt }]
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+          imageSize: "1K"
+        }
+      }
+    });
+
+    // Lặp qua các part để tìm dữ liệu ảnh (inlineData)
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
       }
     }
-  });
-
-  const part = response.candidates?.[0]?.content.parts.find(p => p.inlineData);
-  if (part?.inlineData) {
-    return `data:image/png;base64,${part.inlineData.data}`;
+    return null;
+  } catch (error: any) {
+    console.error("Image Gen Error:", error);
+    if (error.message?.includes("entity was not found")) {
+      throw new Error("KEY_NOT_FOUND");
+    }
+    throw error;
   }
-  return null;
 };
 
 export const generateTetWish = async (recipient: string, style: string): Promise<string> => {
